@@ -99,6 +99,26 @@ def test_pasted_pgn_and_black_identity():
         assert examples[0][2] == 'e7e5'
         assert examples[0][1] == ['e2e4']
 
+def test_reported_chess_com_game_and_skip_reasons(player):
+    pgn = '''[White "SuperNovaga"]
+[Black "hyp3rd4rk"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 Nf6 3. Bb5 c6 4. Bc4 d5 5. Bb3 Qd6 6. Nc3 Be7 7. Qe2 O-O 8. d3
+h6 9. Qe3 Ng4 10. Qe2 dxe4 11. dxe4 Be6 12. Bxe6 fxe6 13. Qc4 Nd7 14. Bd2 Rad8
+15. Na4 Nb6 16. b3 Qxd2+ 17. Kf1 Qf4 18. Qxe6+ Rf7 19. Qc4 Nxc4 20. bxc4 Qxe4
+21. Nc5 Qxc2 22. Nxb7 Rd3 23. Re1 Bb4 24. Nd4 Rxd4 25. Rxe5 Rd1+ 26. Re1 Rxe1#
+0-1'''
+    with db() as c:
+        c.execute('UPDATE players SET name=?,color=? WHERE id=?', ('hyp3rd4rk','black',player['id']))
+    black = dict(player, name='hyp3rd4rk', color='black')
+    good = import_stream(black, io.StringIO(pgn), 'both')
+    assert good['imported'] == 1 and good['positions'] == 26 and not good['errors']
+    wrong_color = import_stream(black, io.StringIO(pgn), 'white')
+    assert wrong_color['skipped'] == 1 and 'cor não corresponde' in wrong_color['messages'][0]
+    wrong_name = import_stream(dict(black, name='Outro'), io.StringIO(pgn), 'both')
+    assert wrong_name['skipped'] == 1 and 'não aparece em White/Black' in wrong_name['messages'][0]
+
 def test_context_changes_output_and_gradient():
     torch.manual_seed(9)
     model = MoveNetwork(width=16, blocks=1, history=8)

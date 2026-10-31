@@ -33,14 +33,22 @@ def import_stream(player, handle, color, report=lambda x: None):
             if game.headers.get('Variant', 'Standard') not in ('Standard', 'Chess'):
                 raise ValueError('Somente xadrez padrão é suportado.')
             selected = set()
+            matched_name = False
             for side, header in [(chess.WHITE, 'White'), (chess.BLACK, 'Black')]:
+                if player['name'].strip().casefold() != game.headers.get(header, '').strip().casefold():
+                    continue
+                matched_name = True
                 allowed = 'white' if side else 'black'
                 if color not in ('both', allowed) or player['color'] not in ('both', allowed):
                     continue
-                if player['name'].strip().casefold() == game.headers.get(header, '').strip().casefold():
-                    selected.add(side)
+                selected.add(side)
             if not selected:
                 counters['skipped'] += 1
+                reason = (f"Partida {counters['processed']}: nome do perfil '{player['name']}' não aparece em White/Black "
+                          f"({game.headers.get('White', '?')} / {game.headers.get('Black', '?')})." if not matched_name else
+                          f"Partida {counters['processed']}: jogador encontrado, mas sua cor não corresponde aos filtros "
+                          f"(perfil: {player['color']}; importação: {color}).")
+                counters['messages'] = (counters['messages'] + [reason])[-20:]
                 continue
             board = game.board()
             if not board.is_valid():

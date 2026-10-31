@@ -983,7 +983,7 @@ function JobList({
             )}
             {j.detail.messages?.length ? (
               <details>
-                <summary>Erros de importação (últimos 20)</summary>
+                <summary>Detalhes da importação (últimos 20)</summary>
                 {j.detail.messages.map((m, i) => (
                   <p key={i} className="error-text">
                     {m}
